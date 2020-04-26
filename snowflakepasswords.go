@@ -18,6 +18,11 @@ import (
 	_ "github.com/snowflakedb/gosnowflake"
 )
 
+// QUESTIONS
+// why is lease 700+ hours?
+// get expiration logic figured out
+// USERADMIN and days for expiry, or SECURITYADMIN to use NETWORK_POLICY hack?
+
 const (
 	snowflakeSQLTypeName     = "snowflake"
 	defaultSnowflakeRenewSQL = `
