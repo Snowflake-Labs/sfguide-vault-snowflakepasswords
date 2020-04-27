@@ -25,6 +25,7 @@ import (
 // USERADMIN and days for expiry, or SECURITYADMIN to use NETWORK_POLICY hack?
 /////// can't use the MINS_TO_BYPASS_NETWORK_POLICY because it's a system
 /////// level setting not even accountadmin can change
+// ADD IN HANDLING FOR USER DOES NOT EXIT ERRORS IN CASE SOMEONE ELSE DELETES USER BEFORE VAULT GETS AROUND TO IT
 
 const (
 	snowflakeSQLTypeName     = "snowflake"
@@ -373,6 +374,8 @@ func (s *SnowflakeSQL) defaultRevokeUser(ctx context.Context, username string) e
 	stmt, err := db.PrepareContext(ctx, fmt.Sprintf(
 		`drop user %s;`, strings.ToUpper(username)))
 	if err != nil {
+		// DO THIS -- ADD IN HANDLING FOR USER DOES NOT EXIT ERRORS IN CASE SOMEONE
+		// ELSE DELETES USER BEFORE VAULT GETS AROUND TO IT
 		return err
 	}
 	defer stmt.Close()
