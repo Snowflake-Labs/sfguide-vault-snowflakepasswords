@@ -350,12 +350,13 @@ func (s *SnowflakeSQL) RotateRootCredentials(ctx context.Context, statements []s
 	return s.RawConfig, nil
 }
 
-func calculateExpirationString(expiration) (string, error) {
+func calculateExpirationString(expiration time.Time) (string, error) {
 	// create time.Time object
 	currentTime := time.Now()
 
 	// get the diff
-	timeDiff := expiration.Sub(currentTime)
+	expirationTime := expiration
+	timeDiff := expirationTime.Sub(currentTime)
 
 	// since it's going to be a string, just make it one
 	diffStr := timeDiff.String()
