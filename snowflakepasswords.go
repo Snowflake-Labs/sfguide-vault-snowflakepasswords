@@ -287,13 +287,13 @@ func (s *SnowflakeSQL) defaultRevokeUser(ctx context.Context, username string) e
 		`drop user %s;`, strings.ToUpper(username)))
 	if err != nil {
 		errString := err.Error()
-		
+
 		// the 002003 (02000) error means the user isn't there. something may
 		// have already dropped it. that's fine. but this is a bit brittle as
 		// the error may change at some point and this would need updating
-		if ( !(strings.Contains(errString, "002003 (02000)")) ) {
+		if !(strings.Contains(errString, "002003 (02000)")) {
 			return err
-		}		
+		}
 	}
 
 	defer stmt.Close()
@@ -381,8 +381,7 @@ func calculateExpirationString(expiration) (string, error) {
 		}
 
 		return expirationStr, nil
-	} 
-	else {
+	} else {
 		return "", err
 	}
 }
