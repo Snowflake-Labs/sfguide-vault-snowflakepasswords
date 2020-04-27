@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,9 +21,10 @@ import (
 )
 
 // QUESTIONS
-// why is lease 700+ hours?
 // get expiration logic figured out
 // USERADMIN and days for expiry, or SECURITYADMIN to use NETWORK_POLICY hack?
+/////// can't use the MINS_TO_BYPASS_NETWORK_POLICY because it's a system
+/////// level setting not even accountadmin can change
 
 const (
 	snowflakeSQLTypeName     = "snowflake"
@@ -169,16 +172,33 @@ func (s *SnowflakeSQL) CreateUser(ctx context.Context, statements dbplugin.State
 		return "", "", err
 	}
 
-	expirationStr, err := s.GenerateExpiration(expiration)
+	// since postgres seems to take a date for expiry, this works
+	// we need a simple number of days
+	/* expirationStr, err := s.GenerateExpiration(expiration)
 	if err != nil {
 		return "", "", err
-	}
+	} */
+
+	// create time.Time object
+	currentTime := time.Now()
+
+	// get the diff
+	timeDiff := expiration.Sub(currentTime)
+
+	// since it's going to be a string, just make it one
+	diffStr := timeDiff.String()
+
+	// split into pieces
+	pieces := strings.SplitAfterN(diffStr, "h", 2)
+
+	// extract the hours
+	expirationStr := strings.ReplaceAll(pieces[0], "h", "")
 
 	// translate the expiration into whole days from hours
 	// SEEMS TO BE LAST THING FROM GETTING THIS WORKING
 	// TAKING OUT FOR NOW TO SEE...
-	expirationStr = "1" // for now
-	/* if expirationInt, err := strconv.Atoi(expirationStr); err == nil {
+	// expirationStr = "1" // for now
+	if expirationInt, err := strconv.Atoi(expirationStr); err == nil {
 		// this number will be in hours
 		if (expirationInt / 24) < 1 {
 			// anything less than 24 hours becomes 1 day
@@ -187,7 +207,7 @@ func (s *SnowflakeSQL) CreateUser(ctx context.Context, statements dbplugin.State
 			// anything more than 24 hours is rounded down to least possible days
 			expirationStr = strconv.Itoa(int(math.Floor(float64(expirationInt / 24))))
 		}
-	} */
+	}
 
 	// Get the connection
 	db, err := s.getConnection(ctx)
@@ -232,16 +252,33 @@ func (s *SnowflakeSQL) RenewUser(ctx context.Context, statements dbplugin.Statem
 		return err
 	}
 
-	expirationStr, err := s.GenerateExpiration(expiration)
+	// since postgres seems to take a date for expiry, this works
+	// we need a simple number of days
+	/* expirationStr, err := s.GenerateExpiration(expiration)
 	if err != nil {
-		return err
-	}
+		return "", "", err
+	} */
+
+	// create time.Time object
+	currentTime := time.Now()
+
+	// get the diff
+	timeDiff := expiration.Sub(currentTime)
+
+	// since it's going to be a string, just make it one
+	diffStr := timeDiff.String()
+
+	// split into pieces
+	pieces := strings.SplitAfterN(diffStr, "h", 2)
+
+	// extract the hours
+	expirationStr := strings.ReplaceAll(pieces[0], "h", "")
 
 	// translate the expiration into whole days from hours
 	// SEEMS TO BE LAST THING FROM GETTING THIS WORKING
 	// TAKING OUT FOR NOW TO SEE...
-	expirationStr = "1" // for now
-	/* if expirationInt, err := strconv.Atoi(expirationStr); err == nil {
+	// expirationStr = "1" // for now
+	if expirationInt, err := strconv.Atoi(expirationStr); err == nil {
 		// this number will be in hours
 		if (expirationInt / 24) < 1 {
 			// anything less than 24 hours becomes 1 day
@@ -250,7 +287,7 @@ func (s *SnowflakeSQL) RenewUser(ctx context.Context, statements dbplugin.Statem
 			// anything more than 24 hours is rounded down to least possible days
 			expirationStr = strconv.Itoa(int(math.Floor(float64(expirationInt / 24))))
 		}
-	} */
+	}
 
 	for _, stmt := range renewStmts {
 		for _, query := range strutil.ParseArbitraryStringSlice(stmt, ";") {
@@ -318,7 +355,11 @@ func (s *SnowflakeSQL) defaultRevokeUser(ctx context.Context, username string) e
 	// Check if the role exists - NAME MUST BE CAPS
 	// This syntax also means we must have an extra grant for the role:
 	// grant imported privileges on database snowflake to role USERADMIN;
-	var exists bool
+	// SINCE THIS IS A SELECT IT NEEDS A WAREHOUSE TO RUN, AND THAT MEANS A
+	// BIG CHANGE TO THE USERADMIN USER ACTING AS VAULT. SINCE THERE IS NO
+	// NEED TO CHECK, REMOVING THIS LOGIC FOR NOW TO ANALYZE IF IT'S FINE
+	// TO HAVE IT GONE. SUSEPCT IT WILL BE FINE.
+	/* var exists bool
 	err = db.QueryRowContext(ctx, "SELECT exists (select name from SNOWFLAKE.ACCOUNT_USAGE.USERS where name = '$1');", strings.ToUpper(username)).Scan(&exists)
 	if err != nil && err != sql.ErrNoRows {
 		return err
@@ -326,7 +367,7 @@ func (s *SnowflakeSQL) defaultRevokeUser(ctx context.Context, username string) e
 
 	if !exists {
 		return nil
-	}
+	} */
 
 	// Drop this user
 	stmt, err := db.PrepareContext(ctx, fmt.Sprintf(

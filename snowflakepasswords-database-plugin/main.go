@@ -8,6 +8,7 @@ import (
 	"lab.net/sanderiam/snowflakepasswords"
 )
 
+// this just encapsulates the rest of the program
 func main() {
 	apiClientMeta := &api.PluginAPIClientMeta{}
 	flags := apiClientMeta.FlagSet()
