@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/vault/api"
+	"github.com/sanderiam/samplehashivaultsnowflakepasswords"
 )
 
 // this just encapsulates the rest of the program
@@ -13,7 +14,7 @@ func main() {
 	flags := apiClientMeta.FlagSet()
 	flags.Parse(os.Args[1:])
 
-	err := snowflakepasswords.Run(apiClientMeta.GetTLSConfig())
+	err := samplehashivaultsnowflakepasswords.Run(apiClientMeta.GetTLSConfig())
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
