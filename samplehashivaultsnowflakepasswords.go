@@ -1,4 +1,4 @@
-package snowflakepasswords-database-plugin
+package samplehashivaultsnowflakepasswords
 
 import (
 	"context"
