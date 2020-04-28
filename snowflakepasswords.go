@@ -1,4 +1,4 @@
-package snowflakepasswords
+package snowflakepasswords-database-plugin
 
 import (
 	"context"
