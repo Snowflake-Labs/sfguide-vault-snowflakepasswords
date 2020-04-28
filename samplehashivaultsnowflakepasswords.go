@@ -92,11 +92,13 @@ func (s *SnowflakeSQL) getConnection(ctx context.Context) (*sql.DB, error) {
 }
 
 // SetCredentials uses provided information to set/create a user in the
-// database. Unlike CreateUser, this method requires a username be provided and
+// database. Used by /database/static-roles/:name call from vault.
+// Unlike CreateUser, this method requires a username be provided and
 // uses the name given, instead of generating a name. This is used for creating
 // and setting the password of static accounts, as well as rolling back
 // passwords in the database in the event an updated database fails to save in
-// Vault's storage.
+// Vault's storage. In Snowflake, the user must be owned by USERADMIN role (or
+// whatever role vault is using for it's authority) for this to work
 func (s *SnowflakeSQL) SetCredentials(ctx context.Context, statements dbplugin.Statements, staticUser dbplugin.StaticUserConfig) (username, password string, err error) {
 	if len(statements.Rotation) == 0 {
 		statements.Rotation = []string{defaultSnowflakeRotateRootCredentialsSQL}
@@ -111,15 +113,6 @@ func (s *SnowflakeSQL) SetCredentials(ctx context.Context, statements dbplugin.S
 	// Get the connection
 	db, err := s.getConnection(ctx)
 	if err != nil {
-		return "", "", err
-	}
-
-	// Check if the user exists - NAME MUST BE CAPS
-	// This syntax also means we must have an extra grant for the role:
-	// grant imported privileges on database snowflake to role USERADMIN;
-	var exists bool
-	err = db.QueryRowContext(ctx, "SELECT exists (select name from SNOWFLAKE.ACCOUNT_USAGE.USERS where name = '$1');", strings.ToUpper(username)).Scan(&exists)
-	if err != nil && err != sql.ErrNoRows {
 		return "", "", err
 	}
 
