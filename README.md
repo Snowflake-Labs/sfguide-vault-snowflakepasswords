@@ -1,4 +1,4 @@
-# samplehashivaultsnowflakepasswords
+# vault-snowflakepasswords-sample
 snowflakepasswords-database-plugin is a Hashicorp Vault database plugin to manage Snowflake ephemeral users with passwords which may turn into a general password management plugin
 
 ## General Usage
