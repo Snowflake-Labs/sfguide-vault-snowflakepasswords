@@ -1,4 +1,4 @@
-package vault-snowflakepasswords-sample
+package snowpasssample
 
 import (
 	"context"
