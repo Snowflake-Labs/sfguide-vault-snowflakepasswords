@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/sanderiam/samplehashivaultsnowflakepasswords"
+	"github.com/sanderiam/vault-snowflakepasswords-sample"
 )
 
 // this just encapsulates the rest of the program
