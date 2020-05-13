@@ -78,13 +78,14 @@ If we break down this command, the important pieces are:
 
 > `vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h`
 
-> `$ vault read database/creds/xvi`
-> `Key                Value`
-> `---                -----`
-> `lease_id           database/creds/xvi/Jk8qolr98MgcwFoPo9Kib5xn`
-> `lease_duration     1h`
-> `lease_renewable    true`
-> `password           A1a-chwmvxhxt54WzO9z`
-> `username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049`
+> ```$ vault read database/creds/xvi
+Key                Value
+---                -----
+lease_id           database/creds/xvi/Jk8qolr98MgcwFoPo9Kib5xn
+lease_duration     1h
+lease_renewable    true
+password           A1a-chwmvxhxt54WzO9z
+username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049
+```
 
 ## Known Limitations
