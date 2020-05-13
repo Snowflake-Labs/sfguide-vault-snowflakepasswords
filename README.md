@@ -24,7 +24,7 @@ If you are already familiar with the [general concepts](https://www.vaultproject
 2. A Go build environment to create the binary version of this plugin.
   + This was developed using Go version 1.14.2 on Ubuntu 20.04 LTS, and compatability with other versions and systems is unknown.
   + The code uses a number of modules which will need to be present during building, including the [Snowflake Go Driver](https://docs.snowflake.com/en/user-guide/go-driver.html).
-3. A Snowflake user with at least USERADMIN role granted to run the plugin's commands.
+3. A Snowflake user with at least USERADMIN role granted to run the plugin's commands, or the ability to create one.
 4. If you will be using dynamicly created Snowflake Users based vault roles, you will need WAREHOUSE and ROLE objects in Snowflake which will be used by the dynamic users owned or granted to the user in #3 with grant option.
 5. Any user which will be controlled by this plugin must be owned by USERADMIN role.
 
@@ -50,7 +50,7 @@ If you followed the mock plugin procedure above, you should already have a worki
 ### Enabling the snowflakepasswords-database-plugin in vault
 This again assumes you are using the dev server to understand this SAMPLE. To enable the plugin with your dev Vault server, follow these steps:
 
-1. Start the vault server in dev mode and point to <YOUR VAULT PLUGINS DIRECTORY> as used above, e.g. `vault server -dev -dev-root-token-id=root -dev-plugin-dir=./plugins` 
+1. Start the vault server in dev mode and point to `<YOUR VAULT PLUGINS DIRECTORY>` as used above, e.g. `vault server -dev -dev-root-token-id=root -dev-plugin-dir=./plugins` 
 2. The first step will take over that session, and you will need a second one to continue.
 3. Prepare your session to interact with the running vault server by setting the `VAULT_ADDR`, e.g. `export VAULT_ADDR='http://127.0.0.1:8200'`
 4. Log in to Vault, e.g. `vault login root`
@@ -60,10 +60,35 @@ This again assumes you are using the dev server to understand this SAMPLE. To en
 ## Using the snowflakepasswords-database-plugin
 If you're following along with a dev mode Vault server or using a different set up and you've been able to get this SAMPLE running, you're now ready to use the features. 
 
+### Preparing Snowflake for the snowflakepasswords-database-plugin
+This will assume you have not yet created the Snowflake user from the "Requirements" item #3, and will create that user now. You will need the approrpiate Snowflake rights to do this. In this example, we will use a User named `karnak`. You can create the user like so:
+
+```
+create user karnak PASSWORD = '<YOURUSERADMINUSERPASSWORD>' DEFAULT_ROLE = USERADMIN;
+grant role USERADMIN to user karnak;
+```
+
+The `USERADMIN` role is the minimum required rights to accomplish the examples used with thie SAMPLE here. If you choose to have the plugin do things differently, more rights may be required. If you wish to allow Valut to manage (rotate) the credentials for the `karnak` user as well, you will need to grant ownership of that user to the `USERADMIN` role - like so:
+
+```
+grant ownership on user karnak to role USERADMIN;
+```
+
+Since users in SNowflake will likley need to run SQL and will also likely need a role other than the `PUBLIC` role, you will want to create these assets and grant the `USERADMIN` role access to manage these so the `karnak` user Vault will use can do what it needs to do. That can be done liek so:
+
+```
+CREATE WAREHOUSE VAULTTEST WITH WAREHOUSE_SIZE = 'XSMALL' WAREHOUSE_TYPE = 'STANDARD' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE MIN_CLUSTER_COUNT = 1 MAX_CLUSTER_COUNT = 2 SCALING_POLICY = 'STANDARD';
+create role vaulttesting;
+grant ownership on role vaulttesting to role USERADMIN;
+grant ownership on warehouse VAULTTEST to role USERADMIN;
+```
+
 ### Connecting Vault to Snowflake
 In order to get started, you will need the Snowflake user from the "Requirements" item #3. In this example, we will use a User named `karnak`. Assuming you're continuing from the last section (or that you know what you're doing well enough), the next step is to run a command to set up one of your Snowflake Accounts in Vault. This setup command will look something like this:
 
-> `vault write database/config/va_demo07 plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@va_demo07.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"`
+```
+vault write database/config/va_demo07 plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@va_demo07.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"
+```
 
 If we break down this command, the important pieces are:
 * `database/config/va_demo07` - this tells vault to make a new configuration in the datbase backend for a Snowflake account it will know as `va_demo07`. In this example, I've used the Snowflake Account's name as the name of the configuration entry, but it's not required that you do that. It can be named whatever you wish. 
@@ -76,7 +101,9 @@ If we break down this command, the important pieces are:
 
 ### Setting Up An Ephemeral Snowflake User with Vault
 
-> `vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h`
+```
+vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h
+```
 
 ```
 $ vault read database/creds/xvi
@@ -87,6 +114,24 @@ lease_duration     1h
 lease_renewable    true
 password           A1a-randomCHARsWz9z
 username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049
+```
+
+### Auditing the Actions of Vault in Snowflake
+
+```
+show users like '%token%';
+```
+
+```
+select QUERY_ID, QUERY_TEXT, USER_NAME, ERROR_CODE, ERROR_MESSAGE, START_TIME
+from table(snowflake.information_schema.query_history(dateadd('hours',-4,current_timestamp()),current_timestamp())) where USER_NAME like '%KAR%' order by start_time DESC;
+```
+
+### Using Vault to Rotate Existing Users' Crednetials
+
+```
+create user bob;
+grant OWNERSHIP on user bob to role USERADMIN;
 ```
 
 ## Known Limitations
