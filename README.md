@@ -45,7 +45,7 @@ If you followed the mock plugin procedure above, you should already have a worki
 4. `go build snowflakepasswords-database-plugin/main.go`
 5. `mv ./main <YOUR VAULT PLUGINS DIRECTORY>/snowflakepasswords-database-plugin`
 6. `sha256sum ../plugins/snowflakepasswords-database-plugin | awk '{print $1}'`
-7. Save the output of step #6 for a later step, which will be referred to as <THESHA256>.
+7. Save the output of step #6 for a later step, which will be referred to as `<THESHA256>`.
 
 ### Enabling the snowflakepasswords-database-plugin in vault
 This again assumes you are using the dev server to understand this SAMPLE. To enable the plugin with your dev Vault server, follow these steps:
@@ -55,10 +55,22 @@ This again assumes you are using the dev server to understand this SAMPLE. To en
 3. Prepare your session to interact with the running vault server by setting the `VAULT_ADDR`, e.g. `export VAULT_ADDR='http://127.0.0.1:8200'`
 4. Log in to Vault, e.g. `vault login root`
 5. Enable the built in Vault Database Backend by running `vault secrets enable database`
-6. Enable the snowflakepasswords-database-plugin by running `vault write sys/plugins/catalog/database/snowflakepasswords-database-plugin sha256=<THESHA256> command="snowflakepasswords-database-plugin"` - where <THESHA256> is the value saved from step #6 of "Building the snowflakepasswords-database-plugin".
+6. Enable the snowflakepasswords-database-plugin by running `vault write sys/plugins/catalog/database/snowflakepasswords-database-plugin sha256=<THESHA256> command="snowflakepasswords-database-plugin"` - where `<THESHA256>` is the value saved from step #6 of "Building the snowflakepasswords-database-plugin". You're looking for this indicator of success: `Success! Data written to: sys/plugins/catalog/database/snowflakepasswords-database-plugin`.
+
+## Using the snowflakepasswords-database-plugin
+If you're following along with a dev mode Vault server or using a different set up and you've been able to get this SAMPLE running, you're now ready to use the features. In order to get started, you will need the SNowflake user from the "Requirements" item #3. In this example, we will use a User named `karnak`. Assuming you're continuing from the last section (or that you know what you're doing well enough), the next step is to run a command to set up one of your Snowflake Accounts in Vault. This setup command will look something like this:
+
+> `vault write database/config/va_demo07 plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@va_demo07.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"`
+
+If we break down this command, the important pieces are:
+* `database/config/va_demo07` - 
+* `plugin_name=snowflakepasswords-database-plugin` - 
+* `allowed_roles="xvi` - 
+* `connection_url="{{username}}:{{password}}@va_demo07.us-east-1/"` - 
+* `username="karnak" password="<YOURUSERADMINUSERPASSWORD>"` - 
 
 
-  163  vault write database/config/va_demo07 plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@va_demo07.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"
+
   164  vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h
   165  vault read database/creds/xvi
 
