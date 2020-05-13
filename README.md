@@ -112,16 +112,18 @@ If we break down this command, the important pieces are:
 > `vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h`
 
 If we break down this command, the important pieces are:
-* `database/roles/xvi` - 
-* `creation_statements="create user {{name}} LOGIN_NAME='{{name}}'...` - 
-  * `create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = "VAULT" LAST_NAME = "CREATED";`
+* `database/roles/xvi` - this is naming the role we are creating. It's important to note that this role `xvi` was named when we created the `va_demo07` Snowflake Account definition. If the role were not allowed then, this write woudl fail as the role would not be authorized. If you wanted to name this role something else or needed to authorize other roles in the future you can run `vault write database/config/va_demo07 allowed_roles="xvi,astonishing,mercs"` and write allowed roles as needed. 
+* `creation_statements="create user {{name}} LOGIN_NAME='{{name}}'...` - thie role will create a SNowflake user every time it's called. In order to do that it needs to have the instructions for how a Snowflake user is created. This allows you to give all the SQL used in that process. That means you can use this to alter the user creation process for each distinct role as you need. PLEASE NOTE, this set of instructions assumes everything will be done in Snowflake using hte `USERADMIN` role as authorization and does not attempt to do anything the role is not authorized to do. If you put in SQL to these defintions which falls outside what that role can do, it will fail. For easier readability all the SQL used is listed here:
+  * `create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = "VAULT" LAST_NAME = "CREATED";` - everything that appears in `{{this}}` format will be replaced by the run time values in the code.
   * `alter user {{name}} set PASSWORD = '{{password}}';`
-  * `alter user {{name}} set DEFAULT_ROLE = ROLEFORVAULTROLE;`
-  * `grant role ROLEFORVAULTROLE to user {{name}};`
-  * `alter user {{name}} set default_warehouse = "WHFORVAULTROLE";`
-  * `grant usage on warehouse WHFORVAULTROLE to role ROLEFORVAULTROLE;`
-  * `alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}};`
-* `default_ttl=1h max_ttl=2h` - 
+  * `alter user {{name}} set DEFAULT_ROLE = vaulttesting;` - `DEFAULT_ROLE` is something likely to vary between diffeent Vault roles you define.
+  * `grant role vaulttesting to user {{name}};`
+  * `alter user {{name}} set default_warehouse = "VAULTTEST";` - `default_warehouse` is something likely to vary between diffeent Vault roles you define.
+  * `grant usage on warehouse VAULTTEST to role vaulttesting;`
+  * `alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}};` - Snowflake does not expire users in hours, so this will be [calculated as days in the plugin code](https://github.com/sanderiam/vault-snowflakepasswords-sample/blob/f35d2a3b9cc2c356b8b26d12754d9fd12e870bbe/vault-snowflakepasswords-sample.go#L362) and be set to a single day for every value of hours below 24.
+* `default_ttl=1h max_ttl=2h` - this sets the default and max lease lifetimes for any user created using this role. 
+
+Once you have the role defined, the way to use it is reading from it to generate a user. This would look liek this on the command line:
 
 ```
 $ vault read database/creds/xvi
@@ -133,12 +135,16 @@ lease_renewable    true
 password           A1a-randomCHARsWz9z
 username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049
 ```
+For the next hour (until the lease expires) this user would exist with that password. At the end that user will be dropped by Vault. 
 
 ### Auditing the Actions of Vault in Snowflake
+Now that Vault is running commands and creating users, you may wish to see what it's up to in Snowflake. There are many ways to do this, and for a full discussion of that please see [our Account Usage docs](https://docs.snowflake.com/en/sql-reference/account-usage.html). Two quick things you can do to see what Vault is up to is show all users that it creates:
 
 ```
 show users like '%token%';
 ```
+
+Or you can get a complete record of the queries it is running:
 
 ```
 select QUERY_ID, QUERY_TEXT, USER_NAME, ERROR_CODE, ERROR_MESSAGE, START_TIME
@@ -146,11 +152,17 @@ from table(snowflake.information_schema.query_history(dateadd('hours',-4,current
 where USER_NAME like '%KAR%' order by start_time DESC;
 ```
 
+This is looking for a user with a name like `KAR`, but if you used a different root user for Vault you should alter that part of the SQL. 
+
 ### Using Vault to Rotate Existing Users' Crednetials
 
 ```
 create user bob;
 grant OWNERSHIP on user bob to role USERADMIN;
 ```
+
+> `vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="va_demo07" rotation_statements="alter user {{name}} set password='{{password}}';"`
+
+
 
 ## Known Limitations
