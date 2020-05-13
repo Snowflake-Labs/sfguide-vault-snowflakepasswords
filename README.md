@@ -91,15 +91,37 @@ In order to get started, you will need the Snowflake user from the "Requirements
 If we break down this command, the important pieces are:
 * `database/config/va_demo07` - this tells vault to make a new configuration in the datbase backend for a Snowflake account it will know as `va_demo07`. In this example, I've used the Snowflake Account's name as the name of the configuration entry, but it's not required that you do that. It can be named whatever you wish. 
 * `plugin_name=snowflakepasswords-database-plugin` - this references the plugin enabled in the last section.
-* `allowed_roles="xvi` - Vault will always put things in the context of roles to authorize access to functions Vault offers. In this exmaple walkthrough, I'm using a net new role I've created, but it's likely in a system you have you may connect this to roles you already have. There is no special role required and it can be used with any roles you wish. 
+* `allowed_roles="xvi` - Vault will always put things in the context of roles to authorize access to functions Vault offers. In this exmaple walkthrough, I'm using a net new role I've created named `xvi`, but it's likely  you may connect this to roles you already have. There is no special role required and it can be used with any roles you wish. 
 * `connection_url="{{username}}:{{password}}@va_demo07.us-east-1/"` - this is the connection string this plugin will use to call out to Snowflake. This plugin is written in go/golang and uses the [Snowflake Go Driver](https://docs.snowflake.com/en/user-guide/go-driver.html). The format of this connection string is what is used in this driver. 
 * `username="karnak" password="<YOURUSERADMINUSERPASSWORD>"` - this is the username and password for the Snowflake user with USERADMIN privilege (from the "Requirements" item #3). These are the initial credentials for this user, and after this you can use this plugin to rotate and manage those credentials from that point on (which will be covered below).
 
 ### Rotating The Snowflake Plugin Vault Crednetials
+Now that Vault is controling credentials, the first natural thing is to ensure it also has control of its own credentials. This can be accomplished using the following command (or equivalent API call), and can be ausotmated in any way orchestration is convienent for you. 
+
+```
+vault write -force database/rotate-root/va_demo07
+```
+
+If we break down this command, the important pieces are:
+* `-force` - this makes the command go through for sure (may not be needed).
+* `database/` - reference to being in the database backend again.
+* `rotate-root/va_demo07` - the instruction is to rotate the "root" credentials for the `va_demo07` Snowflake Account we conected at the start.
 
 ### Setting Up An Ephemeral Snowflake User with Vault
 
 > `vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h`
+
+If we break down this command, the important pieces are:
+* `database/roles/xvi` - 
+* `creation_statements="create user {{name}} LOGIN_NAME='{{name}}'...` - 
+  * `create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = "VAULT" LAST_NAME = "CREATED";`
+  * `alter user {{name}} set PASSWORD = '{{password}}';`
+  * `alter user {{name}} set DEFAULT_ROLE = ROLEFORVAULTROLE;`
+  * `grant role ROLEFORVAULTROLE to user {{name}};`
+  * `alter user {{name}} set default_warehouse = "WHFORVAULTROLE";`
+  * `grant usage on warehouse WHFORVAULTROLE to role ROLEFORVAULTROLE;`
+  * `alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}};`
+* `default_ttl=1h max_ttl=2h` - 
 
 ```
 $ vault read database/creds/xvi
