@@ -61,14 +61,14 @@ This again assumes you are using the dev server to understand this SAMPLE. To en
 If you're following along with a dev mode Vault server or using a different set up and you've been able to get this SAMPLE running, you're now ready to use the features. 
 
 ### Preparing Snowflake for the snowflakepasswords-database-plugin
-This will assume you have not yet created the Snowflake user from the "Requirements" item #3, and will create that user now. You will need the approrpiate Snowflake rights to do this. In this example, we will use a User named `karnak`. You can create the user like so:
+This will assume you have not yet created the Snowflake user from the "Requirements" item #3, and will create that user now. You will need the approrpiate Snowflake rights to do this. In this example, we will use a User named `karnak`. For a full discussion on user creation in Snowflake, please see [the CREATE USER section of our docs](https://docs.snowflake.com/en/sql-reference/sql/create-user.html). You can create the user like so:
 
 ```
 create user karnak PASSWORD = '<YOURUSERADMINUSERPASSWORD>' DEFAULT_ROLE = USERADMIN;
 grant role USERADMIN to user karnak;
 ```
 
-The `USERADMIN` role is the minimum required rights to accomplish the examples used with thie SAMPLE here. If you choose to have the plugin do things differently, more rights may be required. If you wish to allow Valut to manage (rotate) the credentials for the `karnak` user as well, you will need to grant ownership of that user to the `USERADMIN` role - like so:
+The `USERADMIN` role is the minimum required rights to accomplish the examples used with thie SAMPLE here. If you choose to have the plugin do things differently, more rights may be required. For a full discussion of access dontrol in Snowlfake, please see [Access Control in Snowflake in our docs](https://docs.snowflake.com/en/user-guide/security-access-control.html). If you wish to allow Valut to manage (rotate) the credentials for the `karnak` user as well, you will need to grant ownership of that user to the `USERADMIN` role - like so:
 
 ```
 grant ownership on user karnak to role USERADMIN;
