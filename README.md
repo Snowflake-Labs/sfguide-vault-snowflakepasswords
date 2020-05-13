@@ -86,9 +86,7 @@ grant ownership on warehouse VAULTTEST to role USERADMIN;
 ### Connecting Vault to Snowflake
 In order to get started, you will need the Snowflake user from the "Requirements" item #3. In this example, we will use a User named `karnak`. Assuming you're continuing from the last section (or that you know what you're doing well enough), the next step is to run a command to set up one of your Snowflake Accounts in Vault. This setup command will look something like this:
 
-```
-vault write database/config/va_demo07 plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@va_demo07.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"
-```
+> `vault write database/config/va_demo07 plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@va_demo07.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"`
 
 If we break down this command, the important pieces are:
 * `database/config/va_demo07` - this tells vault to make a new configuration in the datbase backend for a Snowflake account it will know as `va_demo07`. In this example, I've used the Snowflake Account's name as the name of the configuration entry, but it's not required that you do that. It can be named whatever you wish. 
@@ -101,9 +99,7 @@ If we break down this command, the important pieces are:
 
 ### Setting Up An Ephemeral Snowflake User with Vault
 
-```
-vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h
-```
+> `vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h`
 
 ```
 $ vault read database/creds/xvi
@@ -124,7 +120,8 @@ show users like '%token%';
 
 ```
 select QUERY_ID, QUERY_TEXT, USER_NAME, ERROR_CODE, ERROR_MESSAGE, START_TIME
-from table(snowflake.information_schema.query_history(dateadd('hours',-4,current_timestamp()),current_timestamp())) where USER_NAME like '%KAR%' order by start_time DESC;
+from table(snowflake.information_schema.query_history(dateadd('hours',-4,current_timestamp()),current_timestamp())) 
+where USER_NAME like '%KAR%' order by start_time DESC;
 ```
 
 ### Using Vault to Rotate Existing Users' Crednetials
