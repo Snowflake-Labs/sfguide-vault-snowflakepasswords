@@ -85,7 +85,7 @@ Key                Value
 lease_id           database/creds/xvi/Jk8qolr98MgcwFoPo9Kib5xn
 lease_duration     1h
 lease_renewable    true
-password           A1a-chwmvxhxt54WzO9z
+password           A1a-randomCHARsWz9z
 username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049
 ```
 
