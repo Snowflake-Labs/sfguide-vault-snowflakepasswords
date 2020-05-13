@@ -58,20 +58,33 @@ This again assumes you are using the dev server to understand this SAMPLE. To en
 6. Enable the snowflakepasswords-database-plugin by running `vault write sys/plugins/catalog/database/snowflakepasswords-database-plugin sha256=<THESHA256> command="snowflakepasswords-database-plugin"` - where `<THESHA256>` is the value saved from step #6 of "Building the snowflakepasswords-database-plugin". You're looking for this indicator of success: `Success! Data written to: sys/plugins/catalog/database/snowflakepasswords-database-plugin`.
 
 ## Using the snowflakepasswords-database-plugin
-If you're following along with a dev mode Vault server or using a different set up and you've been able to get this SAMPLE running, you're now ready to use the features. In order to get started, you will need the SNowflake user from the "Requirements" item #3. In this example, we will use a User named `karnak`. Assuming you're continuing from the last section (or that you know what you're doing well enough), the next step is to run a command to set up one of your Snowflake Accounts in Vault. This setup command will look something like this:
+If you're following along with a dev mode Vault server or using a different set up and you've been able to get this SAMPLE running, you're now ready to use the features. 
+
+### Connecting Vault to Snowflake
+In order to get started, you will need the Snowflake user from the "Requirements" item #3. In this example, we will use a User named `karnak`. Assuming you're continuing from the last section (or that you know what you're doing well enough), the next step is to run a command to set up one of your Snowflake Accounts in Vault. This setup command will look something like this:
 
 > `vault write database/config/va_demo07 plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@va_demo07.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"`
 
 If we break down this command, the important pieces are:
-* `database/config/va_demo07` - 
-* `plugin_name=snowflakepasswords-database-plugin` - 
-* `allowed_roles="xvi` - 
-* `connection_url="{{username}}:{{password}}@va_demo07.us-east-1/"` - 
-* `username="karnak" password="<YOURUSERADMINUSERPASSWORD>"` - 
+* `database/config/va_demo07` - this tells vault to make a new configuration in the datbase backend for a Snowflake account it will know as `va_demo07`. In this example, I've used the Snowflake Account's name as the name of the configuration entry, but it's not required that you do that. It can be named whatever you wish. 
+* `plugin_name=snowflakepasswords-database-plugin` - this references the plugin enabled in the last section.
+* `allowed_roles="xvi` - Vault will always put things in the context of roles to authorize access to functions Vault offers. In this exmaple walkthrough, I'm using a net new role I've created, but it's likely in a system you have you may connect this to roles you already have. There is no special role required and it can be used with any roles you wish. 
+* `connection_url="{{username}}:{{password}}@va_demo07.us-east-1/"` - this is the connection string this plugin will use to call out to Snowflake. This plugin is written in go/golang and uses the [Snowflake Go Driver](https://docs.snowflake.com/en/user-guide/go-driver.html). The format of this connection string is what is used in this driver. 
+* `username="karnak" password="<YOURUSERADMINUSERPASSWORD>"` - this is the username and password for the Snowflake user with USERADMIN privilege (from the "Requirements" item #3). These are the initial credentials for this user, and after this you can use this plugin to rotate and manage those credentials from that point on (which will be covered below).
 
+### Rotating The Snowflake Plugin Vault Crednetials
 
+### Setting Up An Ephemeral Snowflake User with Vault
 
-  164  vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h
-  165  vault read database/creds/xvi
+> `vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h`
+
+> `$ vault read database/creds/xvi`
+> `Key                Value`
+> `---                -----`
+> `lease_id           database/creds/xvi/Jk8qolr98MgcwFoPo9Kib5xn`
+> `lease_duration     1h`
+> `lease_renewable    true`
+> `password           A1a-chwmvxhxt54WzO9z`
+> `username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049`
 
 ## Known Limitations
