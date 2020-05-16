@@ -177,6 +177,14 @@ grant OWNERSHIP on user bob to role USERADMIN;
 
 The USERADMIN role must own the user, or have rights to manage the user in order for this to work.
 
+Since this will extend the Vault configuration for our Snowflake account to a new role, that role must become and `allowed_role` in the configuration. We set that up like so:
+
+```
+vault write database/config/va_demo07 allowed_roles="xvi,astonishing,teamdp"
+```
+
+This adds `astonishing` and `teamdp` to the roles which are allowed for `va_demo07`. It is the same command used to originally create the `va_demo07` configuration, but only writing the single attribute for `allowed_roles`. Note that you must also include the origial `xvi` role or it will no longer be allowed. 
+
 Next we configure Vault to manage the `bob` user we created.
 
 > `vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="va_demo07" rotation_statements="alter user {{name}} set password='{{password}}';"`
@@ -192,26 +200,42 @@ If we break down this command, the important pieces are:
 Once you have the role defined, the way to use it is reading from it to change the user's password. This would look like this on the command line:
 
 ```
-$ vault read database/static-roles/teamdp
-Key                Value
----                -----
-lease_id           database/creds/xvi/Jk8qolr98MgcwFoPo9Kib5xn
-lease_duration     1h
-lease_renewable    true
-password           A1a-randomCHARsWz9z
-username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049
+$ vault read /database/static-creds/teamdp
+Key                    Value
+---                    -----
+last_vault_rotation    2020-05-16T09:32:24.46958155-04:00
+password               A1a-QXnOpEnOpEX4G0oc
+rotation_period        5m
+ttl                    4m52s
+username               bob
 ```
-For the five minutes this user exists with that password, and when the counter expires, the user's password is changed by Vault. You can also force the user's password to be immediately changed liek so:
+
+For the five minutes this user exists with that password, and when the counter expires, the user's password is changed by Vault. The `ttl` is the countdown to the next time Vault will automaticlly change the value of the User's password. If you check again in a few moments, you will see that the countdown has diminished:
 
 ```
-$ vault read database/static-roles/teamdp
-Key                Value
----                -----
-lease_id           database/creds/xvi/Jk8qolr98MgcwFoPo9Kib5xn
-lease_duration     1h
-lease_renewable    true
-password           A1a-randomCHARsWz9z
-username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049
+$ vault read /database/static-creds/teamdp
+Key                    Value
+---                    -----
+last_vault_rotation    2020-05-16T09:32:24.46958155-04:00
+password               A1a-QXnOpEnOpEX4G0oc
+rotation_period        5m
+ttl                    3m46s
+username               bob
+```
+
+You can also force the rotation to happen when you wish, and that will reset the `ttl` as well.
+
+```
+$ vault write -force /database/rotate-role/teamdp
+Success! Data written to: database/rotate-role/teamdp
+$ vault read /database/static-creds/teamdp
+Key                    Value
+---                    -----
+last_vault_rotation    2020-05-16T09:33:56.530157317-04:00
+password               A1a-XMnAdAnAdAsNWbK2
+rotation_period        5m
+ttl                    4m57s
+username               bob
 ```
 
 ## Known Limitations
