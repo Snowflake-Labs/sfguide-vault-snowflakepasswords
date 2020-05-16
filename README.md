@@ -28,11 +28,11 @@ This plugin was developed using Go version 1.14.2 on Ubuntu 20.04 LTS. Compatibi
 
 ### Snowflake Configuration Requirements    
 1. **A Snowflake user with at least the USERADMIN role granted.** Required to create a plugin command or to run a command.
-2. **A Snowflake instance configured with the WAREHOUSE and ROLE objects.** Required if using dynamically-created Users-based Vault roles. Dynamic user roles that are owned by the Snowflake user, or granted to the user, use the WAREHOUSE and ROLE objects.
-5. **A user owned by the USERADMIN role,** which will be controlled by this plugin .
+2. **A Snowflake instance configured with a WAREHOUSE and ROLE for use with dynamically created users.** In order to run any SQL, dynamically-created Users based on Vault roles will need a warehouse and a role.
+5. **A user owned by the USERADMIN role,** which will be controlled by this plugin.
 
 ## Setting Up A Minimalist System
-This section describes how to test this plugin in a development setting using a minimalist setup. This ReadMe file does not comment on adapting this SAMPLE for uses other than testing in a dev environment.
+This section describes how to test this plugin in a development setting using a minimalist setup. This README file does not comment on adapting this SAMPLE for uses other than testing in a dev environment.
 
 ### Starting with Hashicorp Vault in Dev mode
 After you [install Vault](https://learn.hashicorp.com/vault/getting-started/install), you will [start it in "dev mode"](https://learn.hashicorp.com/vault/getting-started/dev-server). At this stage, you simply want to ensure it works as expected. You can use the [simplest possible secret](https://learn.hashicorp.com/vault/getting-started/first-secret) to test this.
@@ -75,7 +75,7 @@ create user karnak PASSWORD = '<YOURUSERADMINUSERPASSWORD>' DEFAULT_ROLE = USERA
 grant role USERADMIN to user karnak;
 ```
 
-The `USERADMIN` role provides the minimum rights necessary to accomplish the examples documented in this ReadMe file. Additional rights may be required to have the plugin do things differently. For a full discussion of access control in Snowflake, see the [Access Control in Snowflake](https://docs.snowflake.com/en/user-guide/security-access-control.html) topic in the product documentation. To allow Vault to manage (rotate) the credentials for the `karnak` user, grant ownership of that user to the `USERADMIN` role:
+The `USERADMIN` role provides the minimum rights necessary to accomplish the examples documented in this README file. Additional rights may be required to have the plugin do things differently. For a full discussion of access control in Snowflake, see the [Access Control in Snowflake](https://docs.snowflake.com/en/user-guide/security-access-control.html) topic in the product documentation. To allow Vault to manage (rotate) the credentials for the `karnak` user, grant ownership of that user to the `USERADMIN` role:
 
 ```
 grant ownership on user karnak to role USERADMIN;
@@ -89,6 +89,8 @@ create role vaulttesting;
 grant ownership on role vaulttesting to role USERADMIN;
 grant ownership on warehouse VAULTTEST to role USERADMIN;
 ```
+
+In this SAMPLE we will only use one Snowlfkae role and warehouse. In a real world scenario, you would have a wide variety of Snowflake roles and warehouses which would be managed by a wide variety of Vault roles - all with different levels of rights and permissions.
 
 ### Connecting Vault to Snowflake
 This section requires the Snowflake user we previously named `karnak`. Here we will run a command to set up one of your Snowflake accounts in Vault:
@@ -120,7 +122,8 @@ If we break down this command, the important pieces are:
 
 If we break down this command, the important pieces are:
 * `database/roles/xvi` - names the role we are creating. Note that the `xvi` role was named when we created the `va_demo07` Snowflake Account definition. If the role was not allowed then, this write would fail because the role would not be authorized. If you want to name this role something else or need to authorize other roles in the future, run `vault write database/config/va_demo07 allowed_roles="xvi,astonishing,mercs"` and write allowed roles as needed.
-* `creation_statements="create user {{name}} LOGIN_NAME='{{name}}'...` - creates a Snowflake user every time it's called. To do that it needs instructions for creating a Snowflake user. This allows you to define the SQL used in that process, which means you can use this to alter the user creation process for each distinct role as you need. PLEASE NOTE: These steps recommend using the Snowflake `USERADMIN` role for authorization. If you add SQL that exceeds what the role can do, the operation will fail.
+* `creation_statements="create user {{name}} LOGIN_NAME='{{name}}'...` - creates a Snowflake user every time it's called. To do that it needs instructions for creating a Snowflake user. This allows you to define the SQL used in that process, which means you can use this to alter the user creation process for each distinct role as you need. PLEASE NOTE: These steps recommend using the Snowflake `USERADMIN` role for authorization. If you add SQL that exceeds what the role can do, the operation will fail. All the SQL commands used here are listed below.
+* `default_ttl=1h max_ttl=2h` - sets the default and max lease lifetimes for any user created using this role.
 
 For easier readability all the SQL is listed here:
   * `create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = "VAULT" LAST_NAME = "CREATED";` - everything that appears in `{{this}}` format is replaced by the runtime values in the code.
@@ -130,7 +133,7 @@ For easier readability all the SQL is listed here:
   * `alter user {{name}} set default_warehouse = "VAULTTEST";` - `default_warehouse` will likely vary between different Vault roles you define.
   * `grant usage on warehouse VAULTTEST to role vaulttesting;`
   * `alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}};` - Snowflake does not expire users in hours, so this is [calculated as days in the plugin code](https://github.com/sanderiam/vault-snowflakepasswords-sample/blob/f35d2a3b9cc2c356b8b26d12754d9fd12e870bbe/vault-snowflakepasswords-sample.go#L362) and can be set to a single day for every value of hours below 24.
-* `default_ttl=1h max_ttl=2h` - sets the default and max lease lifetimes for any user created using this role.
+
 
 Once you have the role defined, the way to use it is reading from it to generate a user. This would look like this on the command line:
 
