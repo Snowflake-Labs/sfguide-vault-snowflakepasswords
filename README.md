@@ -20,7 +20,6 @@ under the License.
 This _sample_ Hashicorp Vault database plugin works with the Snowflake Data Platform. If you are familiar with Vault built-in database plugins, this plugin provides the same features and works the same way. Otherwise, see  Vault's [general concepts](https://www.vaultproject.io/docs/secrets/databases) and [detailed usage](https://www.vaultproject.io/api/secret/databases) documentation to get started. Known limitations are noted below.
 
 ## Requirements
-This plugin was developed using Go version 1.14.2 on Ubuntu 20.04 LTS. Compatibility with other versions and systems is unknown.
 
 ### Environment Requirements
 1. **A working Vault install** with the database secrets backend active.
@@ -167,16 +166,55 @@ where USER_NAME like '%KAR%' order by start_time DESC;
 This is looking for a user with a name like `KAR`, but if you used a different root user for Vault you should alter that part of the SQL.
 
 ### Using Vault to Rotate Existing Users' Credentials
+Along with creating dynamic users, the other common Vault pattern is to manage the passwords of existing Users. This is often applied to User leveraged as service accounts by orchestrated and programmatic tasks. 
+
+To test this using this SAMPLE, first we will create a user to manage and grant ownership of that use to the USERADMIN role.
 
 ```
 create user bob;
 grant OWNERSHIP on user bob to role USERADMIN;
 ```
 
+The USERADMIN role must own the user, or have rights to manage the user in order for this to work.
+
+Next we configure Vault to manage the `bob` user we created.
+
 > `vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="va_demo07" rotation_statements="alter user {{name}} set password='{{password}}';"`
 
+If we break down this command, the important pieces are:
+* `write /database` - we're writing a new configuration to the database backend.
+* `/static-roles/teamdp` - like other constructs, Vault will manage this as a role. The type of role is the "static-role". This is understood in comparison to the dynamic roles used in the last example of Vaut role creation where a new creendial (a new SNowflake User) was created each time the role was called. This time there is a static User and only the password for the user will be changed. The role will be named `teamdp` in this example.
+* `username="bob"` -  the User name for this static role.
+* `rotation_period="5m"` - this sets how often Vault will change this User's password. It can be measured in increments as small as minutes, but also be set to hours or days.
+* `db_name="va_demo07"` - the database name which will hold this role's configuration.
+* `rotation_statements="alter user {{name}} set password='{{password}}';"` - This is the SQL which will be run each time Vault reaches the `rotation_period` and executes the configured commands. This example uses the absolute minimum SQL needed to accomplish the task of rotating the credential, but you could extend this to run any SQL needed. The only limitation is that the user running these commands has the rights to do so.
 
+Once you have the role defined, the way to use it is reading from it to change the user's password. This would look like this on the command line:
+
+```
+$ vault read database/static-roles/teamdp
+Key                Value
+---                -----
+lease_id           database/creds/xvi/Jk8qolr98MgcwFoPo9Kib5xn
+lease_duration     1h
+lease_renewable    true
+password           A1a-randomCHARsWz9z
+username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049
+```
+For the five minutes this user exists with that password, and when the counter expires, the user's password is changed by Vault. You can also force the user's password to be immediately changed liek so:
+
+```
+$ vault read database/static-roles/teamdp
+Key                Value
+---                -----
+lease_id           database/creds/xvi/Jk8qolr98MgcwFoPo9Kib5xn
+lease_duration     1h
+lease_renewable    true
+password           A1a-randomCHARsWz9z
+username           v_token_xvi_hKg9wm9R7Bj98EWxGnXa_1589390049
+```
 
 ## Known Limitations
 
-* None at this time.
+* Most similar Vault database plugins will check for the user's existence before dropping the user. Since that sort of operation requires a warehouse to run SQL and rights the USERADMIN role would not normally have, we've skipped that check. There should be no harm in that, but it is a deviation from the normal pattern. 
+* This plugin was developed using Go version 1.14.2 on Ubuntu 20.04 LTS. Compatibility with other versions and systems is unknown.
