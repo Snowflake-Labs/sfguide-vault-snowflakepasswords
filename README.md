@@ -94,33 +94,33 @@ In this SAMPLE we will only use one Snowlfkae role and warehouse. In a real worl
 ### Connecting Vault to Snowflake
 This section requires the Snowflake user we previously named `karnak`. Here we will run a command to set up one of your Snowflake accounts in Vault:
 
-> `vault write database/config/va_demo07 plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@va_demo07.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"`
+> `vault write database/config/uncannyxmen plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@uncannyxmen.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"`
 
 If we break down this command, the important pieces are:
-* `database/config/va_demo07` - this tells Vault to make a new configuration in the database backend for a Snowflake account it will know as `va_demo07`. This example uses the Snowflake Account's name as the name of the configuration entry, but it's not required that you do that. It can be named whatever you wish.
+* `database/config/uncannyxmen` - this tells Vault to make a new configuration in the database backend for a Snowflake account it will know as `uncannyxmen`. This example uses the Snowflake Account's name as the name of the configuration entry, but it's not required that you do that. It can be named whatever you wish.
 * `plugin_name=snowflakepasswords-database-plugin` - this references the plugin enabled in the last section.
 * `allowed_roles="xvi` - Vault will always put things in the context of roles to authorize access to functions Vault offers. In this example walkthrough, I'm using a net new role I've created named `xvi`, but you can connect this to roles you already have. There is no special role required and it can be used with any roles you wish.
-* `connection_url="{{username}}:{{password}}@va_demo07.us-east-1/"` - this is the connection string the plugin uses to call out to Snowflake. This plugin is written in go/golang and uses the [Snowflake Go Driver](https://docs.snowflake.com/en/user-guide/go-driver.html). The format of this connection string is what is used in this driver.
+* `connection_url="{{username}}:{{password}}@uncannyxmen.us-east-1/"` - this is the connection string the plugin uses to call out to Snowflake. This plugin is written in go/golang and uses the [Snowflake Go Driver](https://docs.snowflake.com/en/user-guide/go-driver.html). The format of this connection string is what is used in this driver.
 * `username="karnak" password="<YOURUSERADMINUSERPASSWORD>"` - this is the username and password for the Snowflake user with the USERADMIN privilege (from "Snowflake Configuration Requirements" item #1). These are the initial credentials for this user, and after this you can use this plugin to rotate and manage those credentials from that point on (which will be covered below).
 
 ### Rotating The Snowflake Plugin Vault Credentials
 Now that Vault is controlling credentials, the first natural thing is to ensure it also has control of its own credentials. This can be accomplished using the following command (or equivalent API call), and can be automated in any way orchestration is convenient for you.
 
 ```
-vault write -force database/rotate-root/va_demo07
+vault write -force database/rotate-root/uncannyxmen
 ```
 
 If we break down this command, the important pieces are:
 * `-force` - this makes the command go through for sure (may not be needed).
 * `database/` - reference to being in the database backend again.
-* `rotate-root/va_demo07` - the instruction is to rotate the "root" credentials for the `va_demo07` Snowflake Account we connected at the start.
+* `rotate-root/uncannyxmen` - the instruction is to rotate the "root" credentials for the `uncannyxmen` Snowflake Account we connected at the start.
 
 ### Setting Up An Ephemeral Snowflake User with Vault
 
-> `vault write database/roles/xvi db_name=va_demo07 creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h`
+> `vault write database/roles/xvi db_name=uncannyxmen creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h`
 
 If we break down this command, the important pieces are:
-* `database/roles/xvi` - names the role we are creating. Note that the `xvi` role was named when we created the `va_demo07` Snowflake Account definition. If the role was not allowed then, this write would fail because the role would not be authorized. If you want to name this role something else or need to authorize other roles in the future, run `vault write database/config/va_demo07 allowed_roles="xvi,astonishing,mercs"` and write allowed roles as needed.
+* `database/roles/xvi` - names the role we are creating. Note that the `xvi` role was named when we created the `uncannyxmen` Snowflake Account definition. If the role was not allowed then, this write would fail because the role would not be authorized. If you want to name this role something else or need to authorize other roles in the future, run `vault write database/config/uncannyxmen allowed_roles="xvi,astonishing,mercs"` and write allowed roles as needed.
 * `creation_statements="create user {{name}} LOGIN_NAME='{{name}}'...` - creates a Snowflake user every time it's called. To do that it needs instructions for creating a Snowflake user. This allows you to define the SQL used in that process, which means you can use this to alter the user creation process for each distinct role as you need. PLEASE NOTE: These steps recommend using the Snowflake `USERADMIN` role for authorization. If you add SQL that exceeds what the role can do, the operation will fail. All the SQL commands used here are listed below.
 * `default_ttl=1h max_ttl=2h` - sets the default and max lease lifetimes for any user created using this role.
 
@@ -180,21 +180,21 @@ The USERADMIN role must own the user, or have rights to manage the user in order
 Since this will extend the Vault configuration for our Snowflake account to a new role, that role must become and `allowed_role` in the configuration. We set that up like so:
 
 ```
-vault write database/config/va_demo07 allowed_roles="xvi,astonishing,teamdp"
+vault write database/config/uncannyxmen allowed_roles="xvi,astonishing,teamdp"
 ```
 
-This adds `astonishing` and `teamdp` to the roles which are allowed for `va_demo07`. It is the same command used to originally create the `va_demo07` configuration, but only writing the single attribute for `allowed_roles`. Note that you must also include the origial `xvi` role or it will no longer be allowed. 
+This adds `astonishing` and `teamdp` to the roles which are allowed for `uncannyxmen`. It is the same command used to originally create the `uncannyxmen` configuration, but only writing the single attribute for `allowed_roles`. Note that you must also include the origial `xvi` role or it will no longer be allowed. 
 
 Next we configure Vault to manage the `bob` user we created.
 
-> `vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="va_demo07" rotation_statements="alter user {{name}} set password='{{password}}';"`
+> `vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="uncannyxmen" rotation_statements="alter user {{name}} set password='{{password}}';"`
 
 If we break down this command, the important pieces are:
 * `write /database` - we're writing a new configuration to the database backend.
 * `/static-roles/teamdp` - like other constructs, Vault will manage this as a role. The type of role is the "static-role". This is understood in comparison to the dynamic roles used in the last example of Vaut role creation where a new creendial (a new SNowflake User) was created each time the role was called. This time there is a static User and only the password for the user will be changed. The role will be named `teamdp` in this example.
 * `username="bob"` -  the User name for this static role.
 * `rotation_period="5m"` - this sets how often Vault will change this User's password. It can be measured in increments as small as minutes, but also be set to hours or days.
-* `db_name="va_demo07"` - the database name which will hold this role's configuration.
+* `db_name="uncannyxmen"` - the database name which will hold this role's configuration.
 * `rotation_statements="alter user {{name}} set password='{{password}}';"` - This is the SQL which will be run each time Vault reaches the `rotation_period` and executes the configured commands. This example uses the absolute minimum SQL needed to accomplish the task of rotating the credential, but you could extend this to run any SQL needed. The only limitation is that the user running these commands has the rights to do so.
 
 Once you have the role defined, the way to use it is reading from it to change the user's password. This would look like this on the command line:
