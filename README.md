@@ -50,7 +50,7 @@ If you followed the mock plugin procedure above, you should have a working golan
 3. `go build`
 4. `go build snowflakepasswords-database-plugin/main.go`
 5. `mv ./main <YOUR VAULT PLUGINS DIRECTORY>/snowflakepasswords-database-plugin`
-6. `sha256sum ../plugins/snowflakepasswords-database-plugin | awk '{print $1}'`
+6. `sha256sum <YOUR VAULT PLUGINS DIRECTORY>/snowflakepasswords-database-plugin | awk '{print $1}'`
 7. Save the output of step #6 for a later step, which will be referred to as `<THESHA256>`.
 
 ### Enabling the Plugin in Vault
