@@ -100,10 +100,7 @@ In this SAMPLE we only use one Snowflake role and warehouse. In a real world sce
 ### Connecting Vault to Snowflake
 This section requires the Snowflake user named `karnak` that we created in the previous section. Running the following command sets up one of your Snowflake accounts in Vault:
 
-```
-vault write database/config/uncannyxmen plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi"
-connection_url="{{username}}:{{password}}@uncannyxmen.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"
-```
+> vault write database/config/uncannyxmen plugin_name=snowflakepasswords-database-plugin allowed_roles="xvi" connection_url="{{username}}:{{password}}@uncannyxmen.us-east-1/" username="karnak" password="<YOURUSERADMINUSERPASSWORD>"
 
 If we break down this command, the important pieces are:
 * `database/config/uncannyxmen` – This tells Vault to make a new configuration in the database backend for a Snowflake account it will know as `uncannyxmen`. This example uses the Snowflake Account's name as the name of the configuration entry, but it's not required that you do that. It can be named whatever you wish.
@@ -126,16 +123,7 @@ If we break down this command, the important pieces are:
 
 ### Setting up an Ephemeral Snowflake User with Vault
 
-```
-vault write database/roles/xvi db_name=uncannyxmen
-creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\";
-alter user {{name}} set PASSWORD = '{{password}}';
-alter user {{name}} set DEFAULT_ROLE = vaulttesting;
-grant role vaulttesting to user {{name}};
-alter user {{name}} set default_warehouse = \"VAULTTEST\";
-grant usage on warehouse VAULTTEST to role vaulttesting;
-alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h
-```
+> vault write database/roles/xvi db_name=uncannyxmen creation_statements="create user {{name}} LOGIN_NAME='{{name}}' FIRST_NAME = \"VAULT\" LAST_NAME = \"CREATED\"; alter user {{name}} set PASSWORD = '{{password}}'; alter user {{name}} set DEFAULT_ROLE = vaulttesting; grant role vaulttesting to user {{name}}; alter user {{name}} set default_warehouse = \"VAULTTEST\"; grant usage on warehouse VAULTTEST to role vaulttesting; alter user {{name}} set DAYS_TO_EXPIRY = {{expiration}}" default_ttl=1h max_ttl=2h
 
 If we break down this command, the important pieces are:
 * `database/roles/xvi` – Names the role we are creating. Note that the `xvi` role was named when we created the `uncannyxmen` Snowflake Account definition. If the role was not allowed then, this write would fail because the role would not be authorized. If you want to name this role something else or need to authorize other roles in the future, run `vault write database/config/uncannyxmen allowed_roles="xvi,astonishing,mercs"` and write allowed roles as needed.   
@@ -208,9 +196,7 @@ This adds `astonishing` and `teamdp` to the roles that are allowed for `uncannyx
 
 Next we configure Vault to manage the `bob` user we created.
 
-```
-vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="uncannyxmen" rotation_statements="alter user {{name}} set password='{{password}}';"
-```
+> vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="uncannyxmen" rotation_statements="alter user {{name}} set password='{{password}}';"
 
 If we break down this command, the important pieces are:
 * `write /database` - Writes a new configuration to the database backend.
