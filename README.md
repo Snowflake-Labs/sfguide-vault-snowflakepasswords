@@ -204,16 +204,18 @@ Because this extends the Vault configuration for our Snowflake account to a new 
 vault write database/config/uncannyxmen allowed_roles="xvi,astonishing,teamdp"
 ```
 
-This adds `astonishing` and `teamdp` to the roles that are allowed for `uncannyxmen`. It is the same command used to originally create the `uncannyxmen` configuration, but only writing the single attribute for `allowed_roles`. Note that you must also include the origial `xvi` role or it will no longer be allowed.
+This adds `astonishing` and `teamdp` to the roles that are allowed for `uncannyxmen`. It is the same command used to originally create the `uncannyxmen` configuration, but only writing the single attribute for `allowed_roles`. Note that you must also include the original `xvi` role or it will no longer be allowed.
 
 Next we configure Vault to manage the `bob` user we created.
 
-> `vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="uncannyxmen" rotation_statements="alter user {{name}} set password='{{password}}';"`
+```
+vault write /database/static-roles/teamdp username="bob" rotation_period="5m" db_name="uncannyxmen" rotation_statements="alter user {{name}} set password='{{password}}';"
+```
 
 If we break down this command, the important pieces are:
 * `write /database` - Writes a new configuration to the database backend.
 * `/static-roles/teamdp` - Like other constructs, Vault manages this as a role. The type of role is the "static-role". This is understood in comparison to the dynamic roles used in the last example of Vault role creation where a new credential (a new Snowflake User) was created each time the role was called. This time there is a static User and only the user's password is changed. The role is named `teamdp` in this example.
-* `username="bob"` -  The User name for this static role.f
+* `username="bob"` -  The User name for this static role.
 * `rotation_period="5m"` - This sets how often Vault will change this User's password. It can be measured in increments as small as minutes, but can also be set to hours or days.
 * `db_name="uncannyxmen"` - The database name that will hold this role's configuration.
 * `rotation_statements="alter user {{name}} set password='{{password}}';"` - This is the SQL that will be run each time Vault reaches the `rotation_period` and executes the configured commands. This example uses the absolute minimum SQL needed to accomplish the task of rotating the credential, but you could extend this to run any SQL needed. The only limitation is that the user running these commands has the rights to do so.
