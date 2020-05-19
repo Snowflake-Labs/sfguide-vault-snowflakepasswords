@@ -12,13 +12,13 @@ Copyright © 2020 Snowflake Inc. All rights reserved.
 * [Known limitations](#known-limitations)
 * [Apache license](#apache-license)
 
----
+
 
 ## General Usage
 
 This _sample_ Hashicorp Vault database plugin works with the Snowflake Data Platform. If you are familiar with Vault built-in database plugins, this plugin provides the same features and works the same way. Otherwise, see  Vault's [general concepts](https://www.vaultproject.io/docs/secrets/databases) and [detailed usage](https://www.vaultproject.io/api/secret/databases) documentation to get started. Known limitations are [noted below](#known-limitations).
 
----
+
 ## Requirements
 
 The `snowflakepasswords-database-plugin` requires:
@@ -33,7 +33,7 @@ The `snowflakepasswords-database-plugin` requires:
 3. **A user owned by the USERADMIN role** that will be controlled by this plugin.
 
 
----
+
 ## Setting up a Minimalist System
 This section describes how to test this plugin in a development setting using a minimalist setup. This README file does not comment on adapting this SAMPLE for uses other than testing in a dev environment.
 
@@ -65,7 +65,7 @@ This step takes over that session and you will need a second one to continue.
 
 Look for this indicator of success: `Success! Data written to: sys/plugins/catalog/database/snowflakepasswords-database-plugin`.
 
----
+
 ## Using the Plugin
 If the SAMPLE is running successfully, you're  ready to use the plugin features.
 
@@ -259,14 +259,14 @@ ttl                    4m57s
 username               bob
 ```
 
----
+
 ## Known Limitations
 
 * Most similar Vault database plugins will check for the user's existence before dropping the user. Since that sort of operation requires a warehouse to run SQL and rights the USERADMIN role would not normally have, we've skipped that check. There should be no harm in that, but it is a deviation from the normal pattern.
 * This plugin was developed using Go version 1.14.2 on Ubuntu 20.04 LTS. Compatibility with other versions and systems is unknown.
 
 
----
+
 ## Apache License
 
 Licensed under the Apache License, Version 2.0 (the  "License"); you may not use this file except in compliance with the License.  
