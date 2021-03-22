@@ -45,8 +45,8 @@ Next, prepare the server to run the SAMPLE plugin. Start by [following the proce
 ### Building the Plugin
 If you followed the mock plugin procedure above, you should have a working golang environment on your system. To build the `snowflakepasswords-database-plugin` plugin binary, follow these steps:
 
-1. cd to the `vault-snowflakepasswords-sample` in the cloned repo.
-2. `go mod init github.com/sanderiam/vault-snowflakepasswords-sample`
+1. cd to the root directory of the cloned repo, `sfguide-vault-snowflakepasswords` by default.
+2. `go mod init github.com/sanderiam/vault-snowflakepasswords-sample` (depending on your go version, you may also need to run `go mod tidy` or equiv at this time)
 3. `go build`
 4. `go build snowflakepasswords-database-plugin/main.go`
 5. `mv ./main <YOUR VAULT PLUGINS DIRECTORY>/snowflakepasswords-database-plugin`
