@@ -1,3 +1,5 @@
+# PLEASE NOTE: Hashicorp has released an official plugin, which you can find here: https://github.com/hashicorp/vault-plugin-database-snowflake
+
 # Vault database plugin for Snowflake  
 
 > A _sample_ Hashicorp Vault database plugin designed to work with the Snowflake Data Platform.
